@@ -1,5 +1,6 @@
 package com.luces.kotlinsqliteapp
 
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
@@ -53,6 +54,7 @@ class DatabaseHelper(context: Context, factory:SQLiteDatabase.CursorFactory?): S
         return id
     }
 
+    @SuppressLint("Range")
     fun getUser(id:Long):User{
 
         var db:SQLiteDatabase=this.readableDatabase
@@ -73,16 +75,87 @@ class DatabaseHelper(context: Context, factory:SQLiteDatabase.CursorFactory?): S
         if(cursor!=null)
             cursor.moveToFirst()
         var user:User=User()
-        //var user:User=User(cursor.getInt(cursor.getColumnIndex(User.COLUMN_USER_Id)))
+        user.setId(cursor.getInt(cursor.getColumnIndex(User.COLUMN_USER_Id)))
+        user.setName(cursor.getString(cursor.getColumnIndex(User.COLUMN_USER_Name)))
+        user.setUsername(cursor.getString(cursor.getColumnIndex(User.COLUMN_USER_Username)))
+        user.setPassword(cursor.getString(cursor.getColumnIndex(User.COLUMN_USER_Password)))
+        cursor.close()
         return user
     }
 
-    fun updateUser(db:SQLiteDatabase){
+    @SuppressLint("Range")
+    fun getListIdsUser():ArrayList<Int>{
+        var list_ids:ArrayList<Int> = ArrayList()
+
+        var selectQuery:String=""
+        selectQuery = "SELECT * FROM ${User.TABLE_NAME_User}"
+        var db:SQLiteDatabase = this.writableDatabase
+         var cursor:Cursor=db.rawQuery(selectQuery,null)
+
+        if(cursor.moveToFirst()){
+            do {
+                var int_id:Int=cursor.getInt(cursor.getColumnIndex(User.COLUMN_USER_Id))
+                list_ids.add(int_id)
+            }while (cursor.moveToNext())
+        }
+        db.close()
+        return list_ids
+    }
+
+    @SuppressLint("Range")
+    fun getAllUsers(sort:String):ArrayList<User>{
+        var users:ArrayList<User> = ArrayList()
+
+        var selectQuery:String=""
+        if (sort.equals("nume")) {
+            selectQuery = "SELECT  * FROM " + User.TABLE_NAME_User + " ORDER BY " +
+                    User.COLUMN_USER_Name + " ASC";
+        } else if (sort.equals("username")) {
+            selectQuery = "SELECT  * FROM ${User.TABLE_NAME_User} ORDER BY ${User.COLUMN_USER_Username} ASC";
+        }
+        var db:SQLiteDatabase=this.writableDatabase
+        var cursor:Cursor = db.rawQuery(selectQuery,null)
+
+        if(cursor.moveToFirst()){
+            do{
+                var user:User= User()
+                user.setId(cursor.getInt(cursor.getColumnIndex(User.COLUMN_USER_Id)))
+                user.setName(cursor.getString(cursor.getColumnIndex(User.COLUMN_USER_Name)))
+                user.setUsername((cursor.getString(cursor.getColumnIndex(User.COLUMN_USER_Username))))
+                user.setPassword(cursor.getString(cursor.getColumnIndex(User.COLUMN_USER_Password)))
+
+                users.add(user)
+            } while (cursor.moveToNext())
+        }
+        db.close()
+        return users
+    }
+
+    fun getUserCount():Int{
+        var countQuery:String="SELECT * FROM ${User.TABLE_NAME_User}"
+        var db:SQLiteDatabase=this.readableDatabase
+        var cursor:Cursor=db.rawQuery(countQuery,null)
+
+        var count:Int=cursor.count
+        cursor.close()
+        return count
+    }
+
+    fun updateUser(user:User): Int {
         var db:SQLiteDatabase=this.writableDatabase
 
         var values:ContentValues= ContentValues()
+        values.put(User.COLUMN_USER_Name,user.getName())
+        values.put(User.COLUMN_USER_Username,user.getUsername())
+        values.put(User.COLUMN_USER_Password,user.getPassword())
         // id selected
+        return db.update(User.TABLE_NAME_User,values,User.COLUMN_USER_Id+" = ?",arrayOf(valueOf(user.getId())))
+    }
 
+    fun deleteUser(user:User){
+        var db:SQLiteDatabase=this.writableDatabase
+        db.delete(User.TABLE_NAME_User,User.COLUMN_USER_Id+" = ?",arrayOf(valueOf(user.getId())))
+        db.close()
     }
 
 
